@@ -28,3 +28,133 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+## Data Imports
+
+```{r echo=FALSE}
+
+library(tidyverse)
+library(maps)
+library(mapproj)
+
+beer_df = read.csv("./Beers.csv")
+
+brewery_df = read.csv("./Breweries.csv")
+
+head(brewery_df)
+```
+
+
+## How many breweries are present in each state?
+
+```{r echo=FALSE}
+
+# Count the number of breweries per state.
+breweries_per_state <- brewery_df %>% group_by(State) %>% summarize(count = n())
+
+# Rename the count column, and convert to a dataframe.
+breweries_per_state <- as.data.frame(rename(breweries_per_state, Breweries=count))
+
+# Trim unnecessary white space from abbreviations in the "State" column.
+breweries_per_state$State <- trimws(breweries_per_state$State)
+
+head(breweries_per_state)
+```
+
+## How many breweries are present in each state (set up for visualization).
+
+```{r echo=FALSE}
+
+# Dataframe of state abbreviations and full names.
+state_name_lookup <- data.frame(State = state.abb, name=state.name)
+
+# Merging to add a column with full state names to breweries_per_state.
+breweries_per_state <- merge(state_name_lookup, breweries_per_state)
+
+# adding "region" column name for easy merging with location data.
+breweries_per_state$region <- tolower(breweries_per_state$name)
+
+# Get the latitude and longitude coordinates
+# for each states boarder.
+states <- map_data("state")
+
+# Merge the location data with the count data.
+# This will merge on the shared "region" column.
+brewery_map <- merge(states, breweries_per_state)
+
+# Order the long, lat according to the "order" column,
+# this makes sure the state boarders get drawn correctly.
+brewery_map <- brewery_map[order(brewery_map$order),]
+
+##########################################################################################################################
+############# This section is just to set up for annotating the top five brewery containing states on the map ############
+##########################################################################################################################
+
+# Create a dataframe sorted by number of breweries (state with the most breweries on top).
+sorted_num_breweries <- breweries_per_state[order(breweries_per_state$Breweries,decreasing = TRUE),]
+
+# Use head to create a dataframe with just the top 5 rows.
+# (Contains the states with the top 5 most breweries in them).
+top_5 <- head(sorted_num_breweries, n=5)
+
+# Merge our top 5 states with the location data.
+top_5_states <- merge(states, top_5)
+
+# Find coordinates of the center of each state in our top 5.
+top_5_state_location <- top_5_states %>% group_by(region) %>% summarize(max_long=max(long),
+                                                                        min_long=min(long),
+                                                                        center_long=min(long) + (max(long) - min(long))/2,
+                                                                        max_lat=max(lat),
+                                                                        min_lat=min(lat),
+                                                                        center_lat=min(lat) + (max(lat)-min(lat))/2,
+                                                                        brewery_count=max(Breweries),
+                                                                        group=max(group))
+
+# Convert our data on the top 5 brewery containing states to a dataframe.
+top_5_df <- as.data.frame(top_5_state_location)
+
+# Special adjustment for michigan, because the lakes get in the way if you use the center.
+# (Scooting the location over to the right of the lakes).
+top_5_df[top_5_df["region"] == "michigan", "center_long"] <- top_5_df[top_5_df["region"] == "michigan", "center_long"] + 2
+
+annot <- data.frame(x=top_5_df$center_long,
+                    y=top_5_df$center_lat,
+                    text=as.character(top_5_df$brewery_count),
+                    group=top_5_df$group)
+
+
+##########################################################################################################################
+############################################## End annotation setup section ##############################################
+##########################################################################################################################
+```
+
+## Visualize breweries by state
+
+```{r echo=FALSE, fig.width=10,fig.height=8}
+
+# Plot the heat map, with annotation for the top 5 states.
+ggplot(brewery_map, aes(x=long,y=lat, group=group)) +
+  geom_polygon(aes(fill=Breweries)) +
+  geom_path() + 
+  scale_fill_gradientn(colours=rev(cm.colors(12)),na.value="grey90") + 
+  geom_text(data=annot, aes(x=x, y=y, label=text)) +
+  ggtitle("Breweries by State")+
+  xlab("longitude") + 
+  ylab("latitude") +
+coord_map()
+
+```
+## Merge beer data with the breweries data
+
+```{r echo=FALSE}
+
+
+```
+
+
+
+```{r echo=FALSE}
+
+
+```
