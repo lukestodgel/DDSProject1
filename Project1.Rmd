@@ -468,3 +468,157 @@ ggplot(data=medians_by_state) +
 
 
 ```
+
+
+## Question 5: Which state has the maximum alcoholic (ABV) beer? 
+##             Which state has the most bitter (IBU) beer?
+
+```{r}
+library(tidyr)
+library(magrittr)
+library(ggplot2)
+library(e1071)
+library(dplyr)
+library(caret)
+
+# Which state has the maximum alcoholic (ABV) beer?
+# Step 1 find highest ABV
+maxABV <- max(combined_df$ABV, na.rm = TRUE)
+
+# Step 2 get Brewery_ID using max ABV
+maxABVBreweryID = combined_df %>% filter(ABV == maxABV) %>% select(Brewery_id)
+maxABVBreweryID = as.integer(maxABVBreweryID) # 52 - Upslope Brewing Company. What a coincidence my brother's old room mate used to work here when they lived in Boudler, CO.
+
+# Step 3 find state using maxABVBreweryID
+combined_df %>% filter(Brewery_id == maxABVBreweryID) %>% select(State)
+#
+# It's Colorado.
+#
+
+# Step 1 find highest IBU
+maxIBU <- max(combined_df$IBU, na.rm = TRUE)
+
+# Step 2 get Brewery_id using max IBU
+maxIBUBreweryID = combined_df %>% filter(IBU == maxIBU) %>% select(Brewery_id)
+maxIBUBreweryID = as.integer(maxIBUBreweryID)
+
+# Step 3 find state using maxIBUBreweryID 
+combined_df %>% filter(Brewery_id == maxIBUBreweryID) %>% select(State)
+#
+# It's Oregon.
+#
+```
+
+## Question 6: Comment on the summary statistics and distribution 
+##             of the ABV variable.
+
+```{r echo = FALSE}
+
+summary(combined_df$ABV)
+
+# The beer with the lowest ABV has .1%, Q1 has 5%, the median is 5.6%, Q3 has 6.7%, the mean percentage ABV is 5.98, and the highest ABV is 12.8%
+# There is definitely a large difference in ABV between the min and the max values.
+# Below is a plot of numBeers categorized by ABV. By plotting all of the beers with respect to their ABV in a bar chart, we can see that this data is right skewed. A large portion of the beers are within the 4.5-6.25% ABV range.
+
+# Histogram plotting number of beers at their respective ABV.
+combined_df %>% 
+  ggplot(aes(x = ABV)) + 
+  geom_histogram() + 
+  ggtitle("Num Beers at each ABV")
+
+```
+
+
+## Question 7: Is there an apparent relationship between the bitterness of the 
+##             beer and its alcoholic content? Draw a scatter plot.  
+
+##             Make your best judgment of a relationship and 
+##             EXPLAIN your answer.
+
+```{r echo = FALSE}
+
+combined_df %>% 
+  select(IBU, ABV) %>% 
+  ggplot() + 
+  geom_point(aes(x = ABV, y = IBU)) + 
+  ggtitle("IBU Vs. ABV")
+
+# According to the chart, it looks like there is a relationship between IBU and ABV. The trend looks like as ABV increases, so does IBU. 
+# Some outliers do exist; For example the beer with the highest ABV does not have the highest IBU, and beer with the lowest ABV does not have the lowest IBU. 
+# It looks like the largest cluster of beers in this chart is within the 3.75%-6.25% ABV and 12.5-50 IBU range.
+
+```
+
+## Question 8: Budweiser would also like to investigate the difference with 
+##             respect to IBU and ABV between IPAs (India Pale Ales) and other 
+##             types of Ale (any beer with “Ale” in its name other than IPA).
+
+##             You decide to use KNN classification to investigate this 
+##             relationship.  Provide statistical evidence one way or the other. 
+
+##             You can of course assume your audience is comfortable with 
+##             percentages … KNN is very easy to understand conceptually.
+
+```{r echo = FALSE}
+#8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN classification to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand conceptually.
+
+#In addition, while you have decided to use KNN to investigate this relationship (KNN is required) you may also feel free to supplement your response to this question with any other methods or techniques you have learned.  Creativity and alternative solutions are always encouraged.  
+library(e1071)
+library(dplyr)
+library(caret)
+library(class)
+
+beerIPAandAle = combined_df %>% filter(grepl("IPA",Style) | grepl("Ale",Style))
+beerIPAandAle = droplevels(beerIPAandAle,exclude = !beerIPAandAle)
+beerIPAandAle <- na.omit(beerIPAandAle)
+
+
+set.seed(1)
+iterations = 500
+numks = 10
+
+masterAcc = matrix(nrow = iterations, ncol = numks)
+masterSensitivity = matrix(nrow = iterations)
+masterSpecificity = matrix(nrow = iterations)
+
+for(j in 1:iterations)
+{
+  
+  for(i in 1:numks)
+  {
+    CM = confusionMatrix(table(beerIPAandAle[,6],knn.cv(beerIPAandAle[,c(4,5)],beerIPAandAle[,6],k = i)))
+    #testing to see if knn.cv can correctly identify the Style of beer based on ABV and IBU
+    masterAcc[j,i] = CM$overall[1]
+  }
+  
+}
+
+MeanAcc = colMeans(masterAcc)
+
+plot(seq(1,numks,1),MeanAcc)
+
+which.max(MeanAcc)
+
+max(MeanAcc)
+
+
+#did not find average specificity and sensitivity because they were getting NA's and causing errors.
+
+
+
+#knn.cv on IBU IPAs, comment on how accurate and sensitive and specific it was
+#repeat for ABV
+
+
+
+```
+
+```{r echo = FALSE}
+#9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence. 
+
+
+#Canned beer vs Bottled beer - preference?
+#are people buying becasue of taste? or alcohol content? or price?
+
+
+```
