@@ -9,31 +9,16 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-
 ## Data Imports
 
 ```{r echo=FALSE}
 
+library(magrittr)
+library(ggplot2)
+library(e1071)
+library(dplyr)
+library(caret)
+library(class)
 library(tidyverse)
 library(maps)
 library(mapproj)
@@ -461,25 +446,10 @@ ggplot(data=medians_by_state) +
 
 ```
 
-
-
-```{r echo=FALSE}
-
-
-
-```
-
-
 ## Question 5: Which state has the maximum alcoholic (ABV) beer? 
 ##             Which state has the most bitter (IBU) beer?
 
 ```{r}
-library(tidyr)
-library(magrittr)
-library(ggplot2)
-library(e1071)
-library(dplyr)
-library(caret)
 
 # Which state has the maximum alcoholic (ABV) beer?
 # Step 1 find highest ABV
@@ -492,8 +462,9 @@ maxABVBreweryID = as.integer(maxABVBreweryID) # 52 - Upslope Brewing Company. Wh
 # Step 3 find state using maxABVBreweryID
 combined_df %>% filter(Brewery_id == maxABVBreweryID) %>% select(State)
 #
-# It's Colorado.
-#
+# It's Colorado (12.8% ABV) - Lee Hill Series Vol. 5 - Belgian Style Quadrupel Ale - 
+# Upslope Brewing Company, Boulder, CO.
+
 
 # Step 1 find highest IBU
 maxIBU <- max(combined_df$IBU, na.rm = TRUE)
@@ -505,8 +476,8 @@ maxIBUBreweryID = as.integer(maxIBUBreweryID)
 # Step 3 find state using maxIBUBreweryID 
 combined_df %>% filter(Brewery_id == maxIBUBreweryID) %>% select(State)
 #
-# It's Oregon.
-#
+# It's Oregon (138 IBU) - Bitter Bitch Imperial IPA - American Double / Imperial IPA 
+# Astoria Brewing Company, Astoria, OR.
 ```
 
 ## Question 6: Comment on the summary statistics and distribution 
@@ -515,19 +486,17 @@ combined_df %>% filter(Brewery_id == maxIBUBreweryID) %>% select(State)
 ```{r echo = FALSE}
 
 summary(combined_df$ABV)
-
 # The beer with the lowest ABV has .1%, Q1 has 5%, the median is 5.6%, Q3 has 6.7%, the mean percentage ABV is 5.98, and the highest ABV is 12.8%
 # There is definitely a large difference in ABV between the min and the max values.
 # Below is a plot of numBeers categorized by ABV. By plotting all of the beers with respect to their ABV in a bar chart, we can see that this data is right skewed. A large portion of the beers are within the 4.5-6.25% ABV range.
 
-# Histogram plotting number of beers at their respective ABV.
 combined_df %>% 
   ggplot(aes(x = ABV)) + 
   geom_histogram() + 
   ggtitle("Num Beers at each ABV")
+# Histogram plotting number of beers at their respective ABV.
 
 ```
-
 
 ## Question 7: Is there an apparent relationship between the bitterness of the 
 ##             beer and its alcoholic content? Draw a scatter plot.  
@@ -539,10 +508,10 @@ combined_df %>%
 
 combined_df %>% 
   select(IBU, ABV) %>% 
-  ggplot() + 
-  geom_point(aes(x = ABV, y = IBU)) + 
+  ggplot(aes(x = ABV, y = IBU)) + 
+  geom_point() +
+  geom_smooth(method='lm') +
   ggtitle("IBU Vs. ABV")
-
 # According to the chart, it looks like there is a relationship between IBU and ABV. The trend looks like as ABV increases, so does IBU. 
 # Some outliers do exist; For example the beer with the highest ABV does not have the highest IBU, and beer with the lowest ABV does not have the lowest IBU. 
 # It looks like the largest cluster of beers in this chart is within the 3.75%-6.25% ABV and 12.5-50 IBU range.
@@ -559,66 +528,179 @@ combined_df %>%
 ##             You can of course assume your audience is comfortable with 
 ##             percentages … KNN is very easy to understand conceptually.
 
+##             In addition, while you have decided to use KNN to investigate 
+##             this relationship (KNN is required) you may also feel free to 
+##             supplement your response to this question with any other methods 
+##             or techniques you have learned.  Creativity and alternative 
+##             solutions are always encouraged. 
+
 ```{r echo = FALSE}
-#8.  Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with “Ale” in its name other than IPA).  You decide to use KNN classification to investigate this relationship.  Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages … KNN is very easy to understand conceptually.
+##################
+# Knn.cv for IPAs#
+##################
+# Testing to see if knn.cv can correctly identify the Style of beer based on ABV and IBU
 
-#In addition, while you have decided to use KNN to investigate this relationship (KNN is required) you may also feel free to supplement your response to this question with any other methods or techniques you have learned.  Creativity and alternative solutions are always encouraged.  
-library(e1071)
-library(dplyr)
-library(caret)
-library(class)
-
-beerIPAandAle = combined_df %>% filter(grepl("IPA",Style) | grepl("Ale",Style))
-beerIPAandAle = droplevels(beerIPAandAle,exclude = !beerIPAandAle)
-beerIPAandAle <- na.omit(beerIPAandAle)
-
+# extract only beers with style "IPA"
+beerIPA = combined_df %>% filter(grepl("IPA",Style))
+beerIPA = droplevels(beerIPA,exclude = !beerIPA)
 
 set.seed(1)
-iterations = 500
-numks = 10
+iterations = 100
+numks = 50
 
-masterAcc = matrix(nrow = iterations, ncol = numks)
-masterSensitivity = matrix(nrow = iterations)
-masterSpecificity = matrix(nrow = iterations)
+masterAccIPA = matrix(nrow = iterations, ncol = numks)
 
 for(j in 1:iterations)
 {
   
   for(i in 1:numks)
   {
-    CM = confusionMatrix(table(beerIPAandAle[,6],knn.cv(beerIPAandAle[,c(4,5)],beerIPAandAle[,6],k = i)))
-    #testing to see if knn.cv can correctly identify the Style of beer based on ABV and IBU
-    masterAcc[j,i] = CM$overall[1]
+    CM = confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = i)))
+    masterAccIPA[j,i] = CM$overall[1]
   }
   
 }
 
-MeanAcc = colMeans(masterAcc)
+# use the 50 accuracies from each test in the for-loop  above and store it in MeanAccIPA
+MeanAccIPA = colMeans(masterAccIPA)
 
-plot(seq(1,numks,1),MeanAcc)
+# plot each accuracy at each K value
+plot(seq(1,numks,1),MeanAccIPA)
 
-which.max(MeanAcc)
+which.max(MeanAccIPA)
 
-max(MeanAcc)
-
-
-#did not find average specificity and sensitivity because they were getting NA's and causing errors.
-
-
-
-#knn.cv on IBU IPAs, comment on how accurate and sensitive and specific it was
-#repeat for ABV
+confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 1))) # accuracy = 0.9159
+confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 4))) # accuracy = 0.9177
+confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 10))) # accuracy = 0.8844
+confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 20))) # accuracy = 0.8336
 
 
+##################
+# Knn.cv for Ales#
+##################
+
+# extract only beers with style "Ale" and not with "IPA"
+beerAle = combined_df %>% filter(grepl("Ale",Style) & !grepl("IPA",Style))
+beerAle = droplevels(beerAle,exclude = !beerAle)
+
+set.seed(1)
+iterations = 100
+numks = 50
+
+masterAccAle = matrix(nrow = iterations, ncol = numks)
+
+for(j in 1:iterations)
+{
+  
+  for(i in 1:numks)
+  {
+    CM = confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = i)))
+    masterAccAle[j,i] = CM$overall[1]
+  }
+  
+}
+
+# use the 50 accuracies from each test in the for-loop  above and store it in MeanAccAle
+MeanAccAle = colMeans(masterAccAle)
+
+# plot each accuracy at each K value
+plot(seq(1,numks,1),MeanAccAle)
+
+which.max(MeanAccAle)
+
+confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 1))) # accuracy = 0.6691
+confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 5))) # accuracy = 0.6525
+confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 10))) # accuracy = 0.6245
+confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 20))) # accuracy = 0.5902
+#The best accuracy for IPAs was 91.77% and for Ales it was 66.91%. It is understandable that the Ales did not classify as well as the IPAs considering there is almost twice the amount of data for Ales and also there are 28 different Styles of Ales. IPAs only had 5 unique Styles. K=4 achieved the highest accuracy for IPAs and k=1 provided the best accuracy for Ales.
+
+#shows 28 different Ales
+beerAle %>% count(Style)
+#shows 5 different IPAs
+beerIPA %>% count(Style)
+
+#######################
+# NB test on same data#
+#######################
+#IPAs first
+
+iterations = 95
+
+masterAccNBIPA = matrix(nrow = iterations)
+
+for(j in 1:iterations)
+{
+  set.seed(j)
+  trainIndicies = sample(seq(1:length(beerIPA$Style)),round(.7*length(beerIPA$Style)))
+  trainIPA = beerIPA[trainIndicies,]
+  testIPA = beerIPA[-trainIndicies,]
+  
+  model = naiveBayes(trainIPA[,c(4,5)],trainIPA$Style, laplace = 1)
+  table(predict(model,testIPA[,c(4,5)]),testIPA$Style)
+  CM = confusionMatrix(table(predict(model,testIPA[,c(4,5)]),testIPA$Style))
+  
+  masterAccNBIPA[j] = CM$overall[1]
+}
+
+MeanAccNBIPA = colMeans(masterAccNBIPA)
+MeanAccNBIPA
+#Mean accuracy here is 89.8% using the Naive Bayes method.
+
+###############
+# Testing Ales#
+###############
+#Beers that only appear once are causing issues within the model. Since this is extra work I will abandon this part. - Luke 
+
+#beerAle = beerAle[grep("Wheat Ale",beerAle$Style,invert = TRUE), ]
+#beerAle = beerAle[grep("Flanders Red Ale",beerAle$Style,invert = TRUE),]
+#beerAle = beerAle[grep("Old Ale",beerAle$Style,invert = TRUE), ]
+
+#iterations = 10
+
+#masterAccNBAle = matrix(nrow = iterations)
+
+#for(j in 1:iterations)
+#{
+#  set.seed(j)
+#  trainIndicies = sample(seq(1:length(beerAle$Style)),round(.7*length(beerAle$Style)))
+#  trainAle = beerAle[trainIndicies,]
+#  testAle = beerAle[-trainIndicies,]
+  
+#  model = naiveBayes(trainAle[,c(4,5)],trainAle$Style, laplace = 1)
+#  table(predict(model,testAle[,c(4,5)]),testAle$Style)
+#  CM = confusionMatrix(table(predict(model,testAle[,c(4,5)]),testAle$Style))
+  
+#  masterAccNBAle[j] = CM$overall[1]
+#}
+
+#MeanAccNBAle = colMeans(masterAccNBAle)
+#MeanAccNBAle
 
 ```
 
+## Question 9: Knock their socks off!  Find one other useful inference from the 
+##             data that you feel Budweiser may be able to find value in.  
+##             You must convince them why it is important and back up your 
+##             conviction with appropriate statistical evidence. 
+
 ```{r echo = FALSE}
-#9. Knock their socks off!  Find one other useful inference from the data that you feel Budweiser may be able to find value in.  You must convince them why it is important and back up your conviction with appropriate statistical evidence. 
+#find states that are lacking breweries and suggest expansion opportunities.
 
+# Count how many breweries are in each state
+breweries_per_state <- brewery_df %>% group_by(State) %>% summarize(count = n())
 
-#Canned beer vs Bottled beer - preference?
-#are people buying becasue of taste? or alcohol content? or price?
+# Put the data frame in ascending order by num Breweries - Bottom 6 states are DC, ND, SD, WV, AR, DE
+head(arrange(breweries_per_state, count))
 
+# States with one to four breweries - There are 19 states that have four or fewer breweries. Potential expansion opportunities.
+arrange((breweries_per_state %>% filter(count == 1 | count == 2 | count == 3 | count == 4)), count)
+
+# It turns out there are only one or two unique instances of each brewery. So this doesn't mean much to us. I thought if there were breweries that occurred several times that might mean they were popular.
+num_occurences_of_breweries <- brewery_df %>% group_by(Name) %>% summarize(count = n())
+arrange(num_occurences_of_breweries, desc(count))
+
+# Extra - Put the data frame in descending order by num Breweries - Top 6 states are CO, CA, MI, OR, TX, PA
+head(arrange(breweries_per_state, desc(count)))
+# Looking at the states with the most breweries and at the states with the least breweries we are suggesting that if the conditions are right, maybe it would be strategic to start up breweries in the states that have fewer breweries.
 
 ```
