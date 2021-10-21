@@ -692,10 +692,13 @@ breweries_per_state <- brewery_df %>% group_by(State) %>% summarize(count = n())
 # Put the data frame in ascending order by num Breweries - Bottom 6 states are DC, ND, SD, WV, AR, DE
 head(arrange(breweries_per_state, count))
 
+# States with one or two breweries.
+arrange((breweries_per_state %>% filter(count == 1 | count == 2)), count)
+
 # States with one to four breweries - There are 19 states that have four or fewer breweries. Potential expansion opportunities.
 arrange((breweries_per_state %>% filter(count == 1 | count == 2 | count == 3 | count == 4)), count)
 
-# It turns out there are only one or two unique instances of each brewery. So this doesn't mean much to us. I thought if there were breweries that occurred several times that might mean they were popular.
+# It turns out there are only one or two unique instances of each brewery. So this doesn't mean much to us. I thought if there were breweries that occurred several times throughout the US it might have implied popularity.
 num_occurences_of_breweries <- brewery_df %>% group_by(Name) %>% summarize(count = n())
 arrange(num_occurences_of_breweries, desc(count))
 
