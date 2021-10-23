@@ -954,7 +954,7 @@ plot_kmeans <- function(brew_df=brewery_location_df, map_plot_df=map_plot_data, 
 # DBSCAN PLOTTING FUNCTION
 #
 plot_dbscan <- function(brew_df=brewery_location_df, map_plot_df=map_plot_data, eps=2,
-                        alpha=0.4, pch=21, fill="black", size=1.5, stroke=2,
+                        alpha=0.4, pch=21, fill="black", size=1.5, stroke=2, minPts=5,
                         filter_alaska=TRUE, filter_hawaii=TRUE, shade_ibu=TRUE, shade_abv=FALSE) {
   
   
@@ -986,7 +986,7 @@ plot_dbscan <- function(brew_df=brewery_location_df, map_plot_df=map_plot_data, 
 
   
   # Run the DBSCAN
-  scan <- dbscan(x=scan_df, eps=eps)
+  scan <- dbscan(x=scan_df, eps=eps, minPts=minPts)
 
   # Store the cluster assignments
   scan_df["cluster_assignment"] <- scan$cluster
@@ -1078,9 +1078,17 @@ plot_dbscan()
 ```{r echo = FALSE, fig.width=10,fig.height=8}
 
 # Changing epsilon distance to 1
-plot_dbscan(eps=1)
+plot_dbscan(eps=2, minPts=4, shade_abv = FALSE)
 
 ```
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# Changing epsilon distance to 1
+plot_dbscan(eps=2, minPts=4, shade_abv = TRUE)
+
+```
+
 
 
 ```{r echo = FALSE, fig.width=10,fig.height=8}
