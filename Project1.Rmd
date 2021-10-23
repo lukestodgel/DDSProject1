@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r echo=FALSE}
 
+library(naniar)
 library(magrittr)
 library(ggplot2)
 library(e1071)
@@ -23,13 +24,15 @@ library(tidyverse)
 library(maps)
 library(mapproj)
 
+# Read in the beer dataset.
 beer_df = read.csv("./Beers.csv")
 
+# Read in the brewery dataset.
 brewery_df = read.csv("./Breweries.csv")
 
+# Take a look at the first few rows of the brewery dataset.
 head(brewery_df)
 ```
-
 
 ## How many breweries are present in each state?
 
@@ -44,6 +47,7 @@ breweries_per_state <- as.data.frame(rename(breweries_per_state, Breweries=count
 # Trim unnecessary white space from abbreviations in the "State" column.
 breweries_per_state$State <- trimws(breweries_per_state$State)
 
+# View the count of breweries in the first few states (alphabetically).
 head(breweries_per_state)
 ```
 
@@ -51,17 +55,16 @@ head(breweries_per_state)
 
 ```{r echo=FALSE}
 
-# Dataframe of state abbreviations and full names.
+# Create a dataframe of state abbreviations and state full names.
 state_name_lookup <- data.frame(State = state.abb, name=state.name)
 
 # Merging to add a column with full state names to breweries_per_state.
 breweries_per_state <- merge(state_name_lookup, breweries_per_state)
 
-# adding "region" column name for easy merging with location data.
+# Adding "region" column name for easy merging with location data.
 breweries_per_state$region <- tolower(breweries_per_state$name)
 
-# Get the latitude and longitude coordinates
-# for each states boarder.
+# Get the latitude and longitude coordinates for each states boarder.
 states <- map_data("state")
 
 # Merge the location data with the count data.
@@ -103,6 +106,7 @@ top_5_df <- as.data.frame(top_5_state_location)
 # (Scooting the location over to the right of the lakes).
 top_5_df[top_5_df["region"] == "michigan", "center_long"] <- top_5_df[top_5_df["region"] == "michigan", "center_long"] + 2
 
+# Create a dataframe with the annotation locations (lat, long), as well as the annotation text.
 annot <- data.frame(x=top_5_df$center_long,
                     y=top_5_df$center_lat,
                     text=as.character(top_5_df$brewery_count),
@@ -112,6 +116,7 @@ annot <- data.frame(x=top_5_df$center_long,
 ##########################################################################################################################
 ############################################## End annotation setup section ##############################################
 ##########################################################################################################################
+
 ```
 
 ## Question 1: Visualize breweries by state
@@ -154,8 +159,6 @@ head(combined_df)
 ## Question 3: Address the missing values.
 
 ```{r echo=FALSE}
-
-library(naniar)
 
 # visualize where the missing values are
 gg_miss_var(combined_df)
@@ -209,13 +212,13 @@ sl_style = "American Amber / Red Ale"
 oct_fiesta_style = "MÃ¤rzen / Oktoberfest"
 kl_style = "Scottish Style"
 
-# Oktober
+# Fill in missing style information for the Oktober beer.
 combined_df[combined_df["Beer_ID"] == 2527, "Style"] = oct_fiesta_style
 
-# Kilt
+# Fill in missing style information for the Kilt beer.
 combined_df[combined_df["Beer_ID"] == 1635, "Style"] = kl_style
 
-# special
+# Fill in missing style information for the special edition beer.
 combined_df[combined_df["Beer_ID"] == 2210, "Style"] = sl_style
 
 # Setup filters to remove crowler and cand_aid observations.
@@ -226,19 +229,23 @@ filters <- crowler_filter | cand_aid_filter
 # Verify our filters will remove exactly two items.
 sum(filters)
 
-# Remove the crowler and cand aid observations
+# Remove the crowler and cand aid observations.
 combined_df <- combined_df[!filters,]
 
-# Verify we no longer have any observations with missing style
+# Verify we no longer have any observations with missing style.
 combined_df[combined_df[,"Style"]== "", ]
 
 ```
+
+
 ```{r echo=FALSE}
+
 # Display the number of missing values in the ABV column.
 sum(is.na(combined_df[,"ABV"]))
 
 # We currently have 60 beers missing alcohol content information.
 ```
+
 
 ```{r echo=FALSE}
 
@@ -253,10 +260,12 @@ write.csv(missing_abv_df, "./beers_with_missing_abv.csv")
 
 
 ```{r echo=FALSE}
+
 # Read in dataset that contains values we can fill in for missing ABV values (from internet searches).
 abv_fillin_df = read.csv("./beers_fillin_abv.csv")
 
 head(abv_fillin_df)
+
 ```
 
 
@@ -276,6 +285,7 @@ combined_df[miss_and_found_filter, "ABV"] <- abv_fillin_df$ABV
 # Check how many beers are now missing alcohol content.
 # Ten, not bad! we started with 60!
 sum(is.na(combined_df$ABV))
+
 ```
 
 ```{r echo=FALSE}
@@ -303,10 +313,13 @@ combined_df[is.na(combined_df$ABV),]
 # Therefore, we can take the conservative estimate of computing the maximum alcohol content per beer style, and use these
 # values to impute the 9 beers with missing alcohol content information.
 
+# Compute the maximum alcohol content for each beer style.
 max_alch_by_style <- combined_df[!is.na(combined_df[,"ABV"]),] %>% group_by(Style) %>% summarize(max_alch=max(ABV))
 
+# Convert to a dataframe.
 max_alch_by_style <- as.data.frame(max_alch_by_style)
 
+# Display the maximum alcohol content for the first few beer styles.
 head(max_alch_by_style)
 
 ```
@@ -317,7 +330,7 @@ head(max_alch_by_style)
 # Grab the beer ids for the remaining beers missing alcohol content info.
 beers_missing_abv <- combined_df[is.na(combined_df$ABV), "Beer_ID"]
 
-# For each beer_id in the list of beer_ids for beers missing ABV... 
+# For each beer_id in the list of beer_ids where a beer is missing ABV information.
 for(beer_id in beers_missing_abv){
   
   # Grab the style of that beer.
@@ -337,12 +350,15 @@ sum(is.na(combined_df$ABV))
 ```
 
 
+
 ```{r echo=FALSE}
 
-# Check how many missing values we have in the IBU column
+# Check how many missing values we have in the IBU column.
 sum(is.na(combined_df$IBU))
 
 ```
+
+
 
 ```{r echo=FALSE}
 
@@ -354,7 +370,7 @@ sum(is.na(combined_df$IBU))
 # Calculate mean IBU for each beer style.
 mean_ibu_by_style <- combined_df[!is.na(combined_df[,"IBU"]),] %>% group_by(Style) %>% summarize(avg_ibu=mean(IBU))
 
-# Convert to dataframe.
+# Convert to a Dataframe.
 mean_ibu_by_style <- as.data.frame(mean_ibu_by_style)
 
 # Take a look at the first few rows
@@ -362,15 +378,17 @@ head(mean_ibu_by_style)
 
 ```
 
+
+
 ```{r echo=FALSE}
 
-# Grab the beer ids for the beers missing IBU information
+# Grab the beer ids for the beers missing IBU information.
 beers_missing_ibu <- combined_df[is.na(combined_df$IBU), "Beer_ID"]
 
-# Global IBU mean for last resort fill in (see if statement inside for loop).
+# Global IBU mean for last resort fill in (see if statement inside for loop for more info).
 global_mean_IBU <- mean(combined_df[!is.na(combined_df$IBU),"IBU"])
 
-# For each beer_id in the list of beer_ids for beers missing ABV... 
+# For each beer_id in the list of beer_ids corresponding to beers missing IBU information.
 for(beer_id in beers_missing_ibu){
   
   # Grab the style of that beer.
@@ -386,7 +404,7 @@ for(beer_id in beers_missing_ibu){
     
     combined_df[combined_df["Beer_ID"] == beer_id, "IBU"] <- global_mean_IBU
     
-  }else{
+  }else{ # else, fill in with the average IBU for this particular beer style.
   
     combined_df[combined_df["Beer_ID"] == beer_id, "IBU"] <- average_ibu   
     
@@ -400,9 +418,9 @@ sum(is.na(combined_df$IBU))
 ```
 
 ```{r echo=FALSE}
+
 # visualize the missing values one more time, verify there are now zero missing values in all columns.
 gg_miss_var(combined_df)
-
 
 ```
 
@@ -411,11 +429,15 @@ gg_miss_var(combined_df)
 
 ```{r echo=FALSE}
 
+# Compute the mean ABV and IBU for beers in each state.
 medians_by_state <- combined_df %>% group_by(State) %>% summarize(median_abv=median(ABV),
                                                                   median_ibu=median(IBU))
 
+# Convert the IBU and ABV by state information created above to a data frame.
 medians_by_state <- as.data.frame(medians_by_state)
 
+
+# Take a look at the first few rows.
 head(medians_by_state)
 
 ```
@@ -423,7 +445,7 @@ head(medians_by_state)
 
 ```{r echo=FALSE}
 
-# Barplot of median alcohol content by state
+# Barplot of median alcohol content by state.
 ggplot(data=medians_by_state) + 
   geom_bar(stat='identity', mapping=aes(x=reorder(State, median_abv), y=median_abv), fill="aquamarine4", color="navy") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
@@ -436,7 +458,7 @@ ggplot(data=medians_by_state) +
 
 ```{r echo=FALSE}
 
-# Barplot of median IBU by state
+# Barplot of median IBU by state.
 ggplot(data=medians_by_state) + 
   geom_bar(stat='identity', mapping=aes(x=reorder(State, median_ibu), y=median_ibu), fill="deeppink3", color="navy") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
@@ -535,6 +557,7 @@ combined_df %>%
 ##             solutions are always encouraged. 
 
 ```{r echo = FALSE}
+
 ##################
 # Knn.cv for IPAs#
 ##################
@@ -549,6 +572,8 @@ iterations = 100
 numks = 50
 
 masterAccIPA = matrix(nrow = iterations, ncol = numks)
+masterSensitivityIPA = matrix(nrow=iterations, ncol=numks)
+masterSpecificityIPA <- matrix(nrow=iterations, ncol=numks)
 
 for(j in 1:iterations)
 {
@@ -557,17 +582,25 @@ for(j in 1:iterations)
   {
     CM = confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = i)))
     masterAccIPA[j,i] = CM$overall[1]
+    masterSensitivityIPA[j, i] <- mean(CM$byClass[,"Sensitivity"], na.rm = TRUE)
+    masterSpecificityIPA[j, i] <- mean(CM$byClass[,"Specificity"], na.rm = TRUE)
   }
   
 }
 
 # use the 50 accuracies from each test in the for-loop  above and store it in MeanAccIPA
 MeanAccIPA = colMeans(masterAccIPA)
+MeanSenseIPA <- colMeans(masterSensitivityIPA)
+MeanSpecIPA <- colMeans(masterSpecificityIPA)
 
 # plot each accuracy at each K value
 plot(seq(1,numks,1),MeanAccIPA)
 
-which.max(MeanAccIPA)
+# Find the k value (num neighbors) that maximized average accuracy, average sensitivity and average specificity
+maxAccIPA <- which.max(MeanAccIPA)
+maxSenseIPA <- which.max(MeanSenseIPA)
+maxSpecIPA <- which.max(MeanSpecIPA)
+
 
 confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 1))) # accuracy = 0.9159
 confusionMatrix(table(beerIPA[,6],knn.cv(beerIPA[,c(4,5)],beerIPA[,6],k = 4))) # accuracy = 0.9177
@@ -588,6 +621,8 @@ iterations = 100
 numks = 50
 
 masterAccAle = matrix(nrow = iterations, ncol = numks)
+masterSensitivityAle = matrix(nrow=iterations, ncol=numks)
+masterSpecificityAle <- matrix(nrow=iterations, ncol=numks)
 
 for(j in 1:iterations)
 {
@@ -596,22 +631,30 @@ for(j in 1:iterations)
   {
     CM = confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = i)))
     masterAccAle[j,i] = CM$overall[1]
+    masterSensitivityAle[j, i] <- mean(CM$byClass[,"Sensitivity"], na.rm = TRUE)
+    masterSpecificityAle[j, i] <- mean(CM$byClass[,"Specificity"], na.rm = TRUE)
+    
   }
   
 }
 
 # use the 50 accuracies from each test in the for-loop  above and store it in MeanAccAle
 MeanAccAle = colMeans(masterAccAle)
+MeanSenseAle <- colMeans(masterSensitivityAle)
+MeanSpecAle <- colMeans(masterSpecificityAle)
 
 # plot each accuracy at each K value
 plot(seq(1,numks,1),MeanAccAle)
 
-which.max(MeanAccAle)
+maxAccAle <- which.max(MeanAccAle)
+maxSenseAle <- which.max(MeanSenseAle)
+maxSpecAle <- which.max(MeanSpecAle)
 
 confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 1))) # accuracy = 0.6691
 confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 5))) # accuracy = 0.6525
 confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 10))) # accuracy = 0.6245
 confusionMatrix(table(beerAle[,6],knn.cv(beerAle[,c(4,5)],beerAle[,6],k = 20))) # accuracy = 0.5902
+
 #The best accuracy for IPAs was 91.77% and for Ales it was 66.91%. It is understandable that the Ales did not classify as well as the IPAs considering there is almost twice the amount of data for Ales and also there are 28 different Styles of Ales. IPAs only had 5 unique Styles. K=4 achieved the highest accuracy for IPAs and k=1 provided the best accuracy for Ales.
 
 #shows 28 different Ales
@@ -627,6 +670,8 @@ beerIPA %>% count(Style)
 iterations = 95
 
 masterAccNBIPA = matrix(nrow = iterations)
+masterSensitivityNBIPA = matrix(nrow=iterations)
+masterSpecificityNBIPA <- matrix(nrow=iterations)
 
 for(j in 1:iterations)
 {
@@ -640,9 +685,14 @@ for(j in 1:iterations)
   CM = confusionMatrix(table(predict(model,testIPA[,c(4,5)]),testIPA$Style))
   
   masterAccNBIPA[j] = CM$overall[1]
+  masterSensitivityNBIPA[j] <- mean(CM$byClass[,"Sensitivity"], na.rm = TRUE)
+  masterSpecificityNBIPA[j] <- mean(CM$byClass[,"Specificity"], na.rm = TRUE)
 }
 
 MeanAccNBIPA = colMeans(masterAccNBIPA)
+MeanSenseAle <- colMeans(masterSensitivityNBIPA)
+MeanSpecAle <- colMeans(masterSpecificityNBIPA)
+
 MeanAccNBIPA
 #Mean accuracy here is 89.8% using the Naive Bayes method.
 
@@ -678,6 +728,379 @@ MeanAccNBIPA
 
 ```
 
+```{r echo = FALSE}
+
+#
+# Function for plotting KNN Metrics versus the number of neighbors used by the model.
+#
+knn_metric_plotter <- function(num_neighbors, mean_metric, best_k, metric_name="Accuracy", v_offset_multiplier=0.01, 
+                               h_shift=0.25, txt_color="red", best_value_marker_shape=8, best_value_marker_color="red",
+                               best_value_marker_size=5, annot_round_digits=5, beer_style="IPA") {
+  
+  
+  df <- data.frame(num_neighbors_k=seq(1,num_neighbors,1), mean_metric_value=mean_metric)
+  
+  best_df <- df[df["num_neighbors_k"] == best_k,]
+  
+  max_metric_pct <- best_df[, "mean_metric_value"]
+  
+  best_df$y_txt <- max_metric_pct + (v_offset_multiplier * max_metric_pct)
+  best_df$x_txt <- best_k + h_shift
+  best_df$txt <- paste0(as.character(round(max_metric_pct, annot_round_digits)), ", k = ", as.character(best_k))
+  
+
+  p <- ggplot(data=df) + 
+      geom_point(aes(x=num_neighbors_k, y=mean_metric_value)) +
+      geom_point(data=best_df, aes(x=num_neighbors_k, y=mean_metric_value), color=txt_color) +
+      geom_point(data=best_df, aes(x=num_neighbors_k, y=mean_metric_value), shape=best_value_marker_shape, 
+                 size=best_value_marker_size, color=best_value_marker_color) +
+      geom_text(data=best_df, aes(x=x_txt, y=y_txt, label=txt), color=best_value_marker_color) + 
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+      xlab("Number of neighbors used in KNN") + 
+      ylab(paste0("Average Test ", metric_name)) + 
+      ggtitle(paste0("Avg Test ", metric_name, " vs Number of Neighbors (KNN), For ", beer_style," Style Beers"))
+  
+  
+  return(p)
+  
+}
+
+```
+
+```{r echo = FALSE}
+
+# KNN ACCURACY PLOT - IPAS ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanAccIPA, best_k=maxAccIPA)
+
+```
+
+
+
+
+```{r echo = FALSE}
+
+# KNN SENSITIVITY PLOT - IPAS ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanSenseIPA, best_k=maxSenseIPA,
+                   metric_name="Sensitivity", v_offset_multiplier=0.025)
+
+
+```
+
+```{r echo = FALSE}
+
+# KNN SPECIFICITY PLOT - IPAS ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanSpecIPA, best_k=maxSpecIPA,
+                   metric_name="Specificity", v_offset_multiplier=0.005)
+
+
+```
+# Ale Style Beers
+
+```{r echo = FALSE}
+
+# KNN ACCURACY PLOT - ALES ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanAccAle, best_k=maxAccAle,
+                   metric_name="Accuracy", v_offset_multiplier=0.015, h_shift=2, beer_style="Ale")
+
+```
+
+
+
+```{r echo = FALSE}
+
+# KNN SENSITIVITY PLOT - ALES ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanSenseAle, best_k=maxSenseAle,
+                   metric_name="Sensitivity", v_offset_multiplier=0.015, beer_style="Ale")
+
+```
+
+
+
+```{r echo = FALSE}
+
+# KNN SPECIFICITY PLOT - ALES ONLY
+knn_metric_plotter(num_neighbors=50, mean_metric=MeanSpecAle, best_k=maxSpecAle,
+                   metric_name="Specificity", v_offset_multiplier=0.0003, h_shift=1.75, beer_style="Ale")
+
+```
+```{r echo = FALSE}
+
+library(dbscan)
+library(RcmdrMisc)
+
+#install.packages("dbscan")
+#install.packages("RcmdrMisc")
+
+brewery_location_df <- read.csv("./All_Brewery_Location_Data.csv")
+
+#alaska_filter <- brewery_location_df["lat"] > 51 
+#hawaii_filter <- brewery_location_df["lat"] < 21 | brewery_location_df["long"] < -140
+#continential_df <- brewery_location_df[!alaska_filter & !hawaii_filter,]
+
+
+#lat_filter <- brewery_location_df["lat"] < 45
+#lat_filter2 <- brewery_location_df["lat"] > 42
+#long_filter <- brewery_location_df["long"] > -80
+#filters <- lat_filter & long_filter & lat_filter2
+#test <- continential_df[,c("lat", "long")]
+#kmeans_clusters <- KMeans(x=test, centers=3)
+#test$cluster <- kmeans_clusters$cluster
+#data.frame(kmeans_clusters$centers)
+#centers <- kmeans_clusters$centers
+#centers_df <- data.frame(centers)
+#centers_df["cluster"] <- seq(1, nrow(centers_df), 1)
+#centers_df
+#test
+
+```
+
+
+
+
+
+```{r echo = FALSE}
+
+
+# ====================================================================================
+# SET-UP MAP TO USE IN CLUSTER PLOTTING FUNCTIONS
+# ====================================================================================
+
+combined_df$State <- trimws(combined_df$State)
+
+state_medians <- combined_df %>% group_by(State) %>% summarize(median_ibu=median(IBU),
+                                                               median_abv=median(ABV))
+
+state_medians <- as.data.frame(state_medians)
+
+# Create a dataframe of state abbreviations and state full names.
+state_name_lookup <- data.frame(State = state.abb, name=state.name)
+
+states <- map_data("state")
+
+ 
+state_data <- merge(state_name_lookup, state_medians)
+
+state_data$region <-tolower(state_data$name)
+
+map_plot_data <- merge(states, state_data)
+
+map_plot_data <- map_plot_data[order(map_plot_data$order),]
+
+#
+# KMEANS PLOTTING FUNCTION
+#
+plot_kmeans <- function(brew_df=brewery_location_df, map_plot_df=map_plot_data, num_centroids=4,
+                        alpha=0.4, pch=21, fill="black", size=1.5, stroke=2, filter_alaska=TRUE, 
+                        filter_hawaii=TRUE, shade_ibu=TRUE, shade_abv=FALSE, plot_cluster_centers=TRUE) 
+  {
+    kmeans_df <- brew_df[, c("lat", "long")]
+    alaksa_filter <- (brew_df["lat"] > 51)
+    hawaii_filter <- (brew_df["lat"] < 22)
+    
+    if(filter_alaska & filter_hawaii){
+      kmeans_df <- kmeans_df[!alaksa_filter & !hawaii_filter,]
+      
+    }else if(filter_hawaii) {
+      kmeans_df <- kmeans_df[!hawaii_filter,]
+      
+    }else if(filter_alaska){
+      kmeans_df <- kmeans_df[!alaksa_filter,]
+    }
+    
+      # Shading heatmap backgroup according to the states median IBU is the default
+    # However, shade_abv overrides this option without the need to adjust shade_ibu parameter
+    
+    if(shade_ibu){
+      map_plot_df$current_shading <- map_plot_df$median_ibu
+      shadeby <- "Median IBU"
+    }
+    if(shade_abv){
+      map_plot_df$current_shading <- map_plot_df$median_abv
+      shadeby <- "Median ABV"
+    }
+  
+    kmeans_clusters <- KMeans(x=kmeans_df, centers=num_centroids)
+    kmeans_df$cluster <- as.factor(kmeans_clusters$cluster)
+    
+    # If we want to plot the cluster centers too
+    centroids_df <- data.frame(kmeans_clusters$centers)
+    centroids_df["cluster"] <- as.factor(seq(1, nrow(centroids_df), 1))
+
+    
+    # Plot the heat map, with annotation for the top 5 states.
+    kmeans_plot <- ggplot(map_plot_df, aes(x=long, y=lat, group=group)) +
+      geom_polygon(aes(fill=current_shading), alpha=alpha) +
+      geom_path() +
+      scale_fill_gradientn(colours=rev(heat.colors(12)),na.value="grey90") +
+      ggtitle(paste0("Brewery Clusters (KMEANS, ",num_centroids, " centroids), States shaded by ", shadeby)) +
+      xlab("longitude") + 
+      ylab("latitude") +
+      coord_map() +
+      geom_point(data=kmeans_df, aes(x=long, y=lat, group=NA, color=cluster), pch=pch, fill=fill, size=size, stroke=stroke)
+    
+    if(plot_cluster_centers){
+      
+      kmeans_plot <- kmeans_plot + 
+        geom_point(data=centroids_df, aes(x=long, y=lat, group=NA, color=cluster), size=6, shape=8, stroke=2)
+      
+    }
+    
+    return(kmeans_plot)
+  
+  }
+
+
+#
+# DBSCAN PLOTTING FUNCTION
+#
+plot_dbscan <- function(brew_df=brewery_location_df, map_plot_df=map_plot_data, eps=2,
+                        alpha=0.4, pch=21, fill="black", size=1.5, stroke=2,
+                        filter_alaska=TRUE, filter_hawaii=TRUE, shade_ibu=TRUE, shade_abv=FALSE) {
+  
+  
+  scan_df <- brew_df[, c("lat", "long")]
+  alaksa_filter <- (brew_df["lat"] > 51)
+  hawaii_filter <- (brew_df["lat"] < 22)
+  
+  if(filter_alaska & filter_hawaii){
+    scan_df <- scan_df[!alaksa_filter & !hawaii_filter,]
+    
+  }else if(filter_hawaii) {
+    scan_df <- scan_df[!hawaii_filter,]
+    
+  }else if(filter_alaska){
+    scan_df <- scan_df[!alaksa_filter,]
+  }
+  
+  # Shading heatmap backgroup according to the states median IBU is the default
+  # However, shade_abv overrides this option without the need to adjust shade_ibu parameter
+  
+  if(shade_ibu){
+    map_plot_df$current_shading <- map_plot_df$median_ibu
+    shadeby <- "Median IBU"
+  }
+  if(shade_abv){
+    map_plot_df$current_shading <- map_plot_df$median_abv
+    shadeby <- "Median ABV"
+  }
+
+  
+  # Run the DBSCAN
+  scan <- dbscan(x=scan_df, eps=eps)
+
+  # Store the cluster assignments
+  scan_df["cluster_assignment"] <- scan$cluster
+  
+  # Separate clusters from noise points, so we can have clear markings for each on the map
+  noise_df <- scan_df[scan_df["cluster_assignment"] == "0",]
+  scan_df <- scan_df[scan_df["cluster_assignment"] != "0",]
+  
+  scan_df["cluster_assignment"] <- as.factor(scan_df$cluster_assignment)
+  
+    # Plot the heat map, with annotation for the top 5 states.
+  full_plot <- ggplot(map_plot_df, aes(x=long,y=lat, group=group)) +
+    geom_polygon(aes(fill=current_shading), alpha=alpha) +
+    geom_path() +
+    scale_fill_gradientn(colours=rev(heat.colors(12)),na.value="grey90") +
+    ggtitle(paste0("Brewery Clusters (DBSCAN EPS=", eps, "), States shaded by ", shadeby)) +
+    xlab("longitude") + 
+    ylab("latitude") +
+    coord_map() +
+    geom_point(data=scan_df, aes(x=long, y=lat, group=NA, color=cluster_assignment), pch=pch, fill=fill, size=size, stroke=stroke) +
+    geom_point(data=noise_df, aes(x=long, y=lat, group=NA), color="black", shape=4)
+  
+  return(full_plot)
+  
+}
+
+
+```
+# KMeans Plotting Section
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+plot_kmeans(num_centroids=3, plot_cluster_centers = FALSE)
+
+
+```
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# KMeans with 4 clusters, and without plotting cluster centroids.
+plot_kmeans()
+
+```
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# KMeans with 4 clusters, and without plotting cluster centroids.
+plot_kmeans(num_centroids=4, plot_cluster_centers=FALSE)
+
+```
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# KMeans with 5 clusters.
+plot_kmeans(num_centroids=5, plot_cluster_centers=FALSE)
+
+```
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# KMeans with 5 clusters, shading background with Median ABV instead of Median IBU.
+plot_kmeans(num_centroids=5, shade_abv=TRUE)
+
+```
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# KMeans with 5 clusters, shading background with Median ABV instead of Median IBU.
+plot_kmeans(num_centroids=6, shade_abv=TRUE, plot_cluster_centers=FALSE)
+
+```
+
+
+
+# DBSCAN Plotting Section
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# Changing epsilon distance to three and recreating plot above
+# EPSILON DISTANCE AT DEFAULT=2
+
+plot_dbscan()
+
+```
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# Changing epsilon distance to 1
+plot_dbscan(eps=1)
+
+```
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# Changing epsilon distance to 2.5 and shading heat map according to ABV instead of IBU
+plot_dbscan(eps=2.5, shade_abv=TRUE)
+
+```
+
+
+
+```{r echo = FALSE, fig.width=10,fig.height=8}
+
+# Changing epsilon distance to 3 
+plot_dbscan(eps=3)
+
+```
+
+
+
 ## Question 9: Knock their socks off!  Find one other useful inference from the 
 ##             data that you feel Budweiser may be able to find value in.  
 ##             You must convince them why it is important and back up your 
@@ -704,6 +1127,8 @@ arrange(num_occurences_of_breweries, desc(count))
 
 # Extra - Put the data frame in descending order by num Breweries - Top 6 states are CO, CA, MI, OR, TX, PA
 head(arrange(breweries_per_state, desc(count)))
+
+
 # Looking at the states with the most breweries and at the states with the least breweries we are suggesting that if the conditions are right, maybe it would be strategic to start up breweries in the states that have fewer breweries.
 
 ```
