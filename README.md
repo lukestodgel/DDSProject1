@@ -26,3 +26,6 @@ Link to youtube videos:
 Rubric files:
 - CaseStudy1_Rubric.docx
 - Case_Study_01.docx
+
+Project Conclusion:
+The goal of our analysis was to uncover valuable business insights regarding the production and sales of beer across the nation. We achieved this goal by researching the distribution of brewery locations, as well as beverage alcohol content and bitterness preferences. By examining where each brewery is currently located, we were able to identify several areas across the country that showed both a strong consumer base as well as only moderate amounts of current competition. Connecting these factor was key, because locations with both characteristics are the most promising candidates for future business expansions. Further, by studying the preferences of the consumers in these areas (in terms of beverage ABV and IBU metrics) we were able to generate strong recommendations for future product lines in these regions.
