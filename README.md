@@ -11,7 +11,7 @@ Main source code file:
 Knit file:
 - Project1.knit
 
-Final powerpoint file for both group members
+Final powerpoint file for both group members:
 - Case_Study_1_DDS_Presentation_Final_Anderson.pptx
 
 Supporting CSV files:
@@ -22,7 +22,7 @@ Supporting CSV files:
 - beers_with_missing_abv.csv
 
 Link to youtube videos:
-- Braden Anderson: 
+- Braden Anderson: https://youtu.be/qbnv8eUJ5WA
 - Luke Stodgel: https://youtu.be/LJXjFUs8SFY
 
 Rubric files:
