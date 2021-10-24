@@ -151,6 +151,8 @@ ggplot(brewery_map, aes(x=long,y=lat, group=group)) +
   ylab("latitude") +
 coord_map()
 
+
+# The number of breweries for each state are shown on the heatmap below.
 ```
 ## Question 2: Merge beer data with the breweries data
 
@@ -171,6 +173,7 @@ combined_df <- rename(combined_df,
 # View the first few rows of the combined dataset.
 head(combined_df)
 
+
 ```
 
 ## Question 3: Address the missing values.
@@ -179,6 +182,13 @@ head(combined_df)
 
 # visualize where the missing values are
 gg_miss_var(combined_df)
+
+
+
+# The missing values were handled by a combination of removing observations not relevant to a beer analysis (non-beer items),
+# finding correct values for missing information (looking up online), and imputing with best estimates (average by group). A 
+# detailed analysis of each decision is provided below.
+
 
 ```
 
