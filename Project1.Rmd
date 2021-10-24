@@ -1,14 +1,31 @@
 ---
 title: "Project 1"
 author: "Braden Anderson and Luke Stodgel"
-date: "10/8/2021"
+date: "10/23/2021"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r echo=FALSE}
+# Introduction
+# First we explored how many breweries are in each state. For this, we decided to make a heat map. The darker states represent states with more breweries and the lighter states represent states with fewer breweries. The top 5 states with the most breweries are Colorado, California, Michigan, Oregon, and Texas.
 
+# Next we will go over how we handled missing data. We saw that there was missing data in the Style, ABV and IBU columns. For the Style column there were five beers without data. Two beers were not actually beers so we removed those rows. For the three remaining beers we filled in their Style using info we found online. For ABV we found that 60 beers were missing information. For 51 of the 60, we filled in the data using info we found on the internet. The nine beers that we couldn't find online were filled in using the maximum ABV for the associated beer style. For IBU we found 1003 beers missing data. All values were imputed using the mean IBU for the associated beer style. If no other beers within that style had IBU information available, the global mean IBU rating was used.
+
+# Next we looked the median ABV and IBU for each state. We provided graphs in our powerpoint showing the median ABV for each state and the median IBU for each state.
+
+# Now for the summary statistics of ABV, the beer with the lowest ABV had .1%, Q1 was 5.0%, the median was 5.6%, the mean was 5.977%, Q3 was 6.7%, and the beer with the highest ABV was 12.8%. As shown in the graph in our powerpoint, the data is shaped like a long-tailed distribution but it is fairly symmetrical around 6% ABV.
+
+# Next we will talk about the relationship between IBU and ABV. We plotted all of the beers based on their IBU and ABV and determined that there was a trend. The trend we found was that as IBU increased, so did ABV. Still, there is a larger variation in IBU among beers with higher ABV.
+
+# We ran two KNN tests: one on IPA style beers and another on Ale style beers. When categorizing IPAs, our best accuracy was achieved using k=4 and the accuracy was 91.69%. For Ales, our best accuracy was achieved using k=1 and the accuracy was 66.635%. We concluded that IBU and ABV are more strongly related for IPA style beers than for Ales.
+
+# Finally for some extra analysis we looked at potential expansion opportunities around the US. We created a map containing the locations of every brewery in our data set. If you look in the powerpoint and see the map, you can see that there are some states that don't have many breweries in them, if any. Our proposal is that if the conditions are right, and it is appropriate to do so, we could expand our business to these places in the country.
+
+# Thank you very much for your time.
+```
 ## Data Imports
 
 ```{r echo=FALSE}
