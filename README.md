@@ -7,7 +7,7 @@ Main source code file:
 - Project1.Rmd
 
 Knit file:
-- Project1.knit
+- Project1.html
 
 Final powerpoint file for both group members:
 - Case_Study_1_DDS_Presentation_Final_Anderson.pptx
