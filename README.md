@@ -1,7 +1,5 @@
 # DDSProject1
 
-### Table of Contents
-
 Purpose:
 - The purpose of the project was to explore and find insights using the data sets, along with answering all of the questions in the case study.
 
@@ -22,7 +20,7 @@ Supporting CSV files:
 - beers_with_missing_abv.csv
 
 Link to youtube videos:
-- Braden Anderson: https://youtu.be/qbnv8eUJ5WA
+- Braden Anderson: 
 - Luke Stodgel: https://youtu.be/LJXjFUs8SFY
 
 Rubric files:
