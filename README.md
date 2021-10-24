@@ -20,7 +20,7 @@ Supporting CSV files:
 - beers_with_missing_abv.csv
 
 Link to youtube videos:
-- Braden Anderson: 
+- Braden Anderson: https://youtu.be/qbnv8eUJ5WA
 - Luke Stodgel: https://youtu.be/LJXjFUs8SFY
 
 Rubric files:
